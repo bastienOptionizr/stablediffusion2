@@ -118,7 +118,7 @@ def run():
     # run via streamlit run scripts/demo/depth2img.py <path-tp-config> <path-to-ckpt>
     sampler = initialize_model(sys.argv[1], sys.argv[2])
 
-    image = Image.open(sys.argv[2])
+    image = Image.open(sys.argv[3])
     w, h = image.size
     st.text(f"loaded input image of size ({w}, {h})")
     width, height = map(lambda x: x - x % 64, (w, h))  # resize to integer multiple of 64
