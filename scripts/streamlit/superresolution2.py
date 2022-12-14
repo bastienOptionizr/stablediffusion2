@@ -114,6 +114,7 @@ def paint(sampler, image, prompt, seed, scale, h, w, steps, num_samples=1, callb
 
 
 def run():
+    prompt = sys.argv[4]
     st.title("Stable Diffusion Upscaling")
     # run via streamlit run scripts/demo/depth2img.py <path-tp-config> <path-to-ckpt>
     sampler = initialize_model(sys.argv[1], sys.argv[2])
@@ -123,11 +124,8 @@ def run():
     st.text(f"loaded input image of size ({w}, {h})")
     width, height = map(lambda x: x - x % 64, (w, h))  # resize to integer multiple of 64
     image = image.resize((width, height))
-    st.text(f"resized input image to size ({width}, {height} (w, h))")
-    st.image(image)
-
-    st.write(f"\n Tip: Add a description of the object that should be upscaled, e.g.: 'a professional photograph of a cat'")
-    prompt = st.text_input("Prompt", "a high quality professional photograph")
+    print("resized input image to size")
+    print(prompt)
 
     seed = st.number_input("Seed", min_value=0, max_value=1000000, value=0)
     num_samples = st.number_input("Number of Samples", min_value=1, max_value=64, value=1)
