@@ -12,6 +12,7 @@ from scripts.txt2img import put_watermark
 from ldm.models.diffusion.ddim import DDIMSampler
 from ldm.models.diffusion.ddpm import LatentUpscaleDiffusion, LatentUpscaleFinetuneDiffusion
 from ldm.util import exists, instantiate_from_config
+from random import *
 
 
 torch.set_grad_enabled(False)
@@ -109,57 +110,61 @@ def paint(sampler, image, prompt, seed, scale, h, w, steps, num_samples=1, callb
         x_samples_ddim = model.decode_first_stage(samples)
     result = torch.clamp((x_samples_ddim + 1.0) / 2.0, min=0.0, max=1.0)
     result = result.cpu().numpy().transpose(0, 2, 3, 1) * 255
-    st.text(f"upscaled image shape: {result.shape}")
     return [put_watermark(Image.fromarray(img.astype(np.uint8)), wm_encoder) for img in result]
 
 
 def run():
     prompt = sys.argv[4]
-    st.title("Stable Diffusion Upscaling")
     # run via streamlit run scripts/demo/depth2img.py <path-tp-config> <path-to-ckpt>
     sampler = initialize_model(sys.argv[1], sys.argv[2])
 
     image = Image.open(sys.argv[3])
     w, h = image.size
-    st.text(f"loaded input image of size ({w}, {h})")
     width, height = map(lambda x: x - x % 64, (w, h))  # resize to integer multiple of 64
     image = image.resize((width, height))
     print("resized input image to size")
     print(prompt)
-
-    seed = st.number_input("Seed", min_value=0, max_value=1000000, value=0)
+    seed = randint(0,100000)
+    # seed = st.number_input("Seed", min_value=0, max_value=1000000, value=0)
     num_samples = st.number_input("Number of Samples", min_value=1, max_value=64, value=1)
-    scale = st.slider("Scale", min_value=0.1, max_value=30.0, value=9.0, step=0.1)
-    steps = st.slider("DDIM Steps", min_value=2, max_value=250, value=50, step=1)
-    eta = st.sidebar.number_input("eta (DDIM)", value=0., min_value=0., max_value=1.)
+    scale = 9
+    # scale = st.slider("Scale", min_value=0.1, max_value=30.0, value=9.0, step=0.1)
+    # steps = st.slider("DDIM Steps", min_value=2, max_value=250, value=50, step=1)
+    steps = 50
+    eta = 0.
+    # eta = st.sidebar.number_input("eta (DDIM)", value=0., min_value=0., max_value=1.)
 
     noise_level = None
     if isinstance(sampler.model, LatentUpscaleDiffusion):
         # TODO: make this work for all models
-        noise_level = st.sidebar.number_input("Noise Augmentation", min_value=0, max_value=350, value=20)
+        noise_level = 20
+        # noise_level = st.sidebar.number_input("Noise Augmentation", min_value=0, max_value=350, value=20)
         noise_level = torch.Tensor(num_samples * [noise_level]).to(sampler.model.device).long()
 
-    t_progress = st.progress(0)
+    # t_progress = st.progress(0)
     def t_callback(t):
         t_progress.progress(min((t + 1) / steps, 1.))
 
     sampler.make_schedule(steps, ddim_eta=eta, verbose=True)
-    if st.button("Sample"):
-        result = paint(
-            sampler=sampler,
-            image=image,
-            prompt=prompt,
-            seed=seed,
-            scale=scale,
-            h=height, w=width, steps=steps,
-            num_samples=num_samples,
-            callback=t_callback,
-            noise_level=noise_level,
-            eta=eta
-        )
-        st.write("Result")
-        for image in result:
-            st.image(image, output_format='PNG')
+    # if st.button("Sample"):
+    index = 0
+    result = paint(
+        sampler=sampler,
+        image=image,
+        prompt=prompt,
+        seed=seed,
+        scale=scale,
+        h=height, w=width, steps=steps,
+        num_samples=num_samples,
+        # callback=t_callback,
+        noise_level=noise_level,
+        eta=eta
+    )
+    # st.write("Result")
+    for image in result:
+        image.save("output/" + index + ".png")
+        index = index + 1
+        # st.image(image, output_format='PNG')
 
 
 if __name__ == "__main__":
